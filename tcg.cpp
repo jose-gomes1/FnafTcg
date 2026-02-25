@@ -233,8 +233,30 @@ void useActiveAbility() {
     int i;
     cout << "Escolha animatronic ativo para usar habilidade: ";
     cin >> i;
+
     if(i >=0 && i < active.size()) {
-        cout << active[i].name << " usou sua habilidade: " << active[i].ability << "\n";
+        Card &c = active[i];
+        cout << c.name << " usou sua habilidade: " << c.ability << "\n";
+
+        // Exemplo de habilidade que liga energia automaticamente
+        if(c.ability.find("Procura eletricidade") != string::npos) {
+            if(c.attachedElectricity < c.maxElectricity) {
+                // procura uma carta de eletricidade na mão
+                auto it = find_if(hand.begin(), hand.end(), [](Card &x){ return x.type == CardType::Electricity; });
+                if(it != hand.end()) {
+                    c.attachedElectricity++;
+                    cout << "Eletricidade ligada automaticamente a " << c.name << "!\n";
+                    hand.erase(it); // remove da mão
+                    attachedThisTurn = true;
+                } else {
+                    cout << "Nenhuma eletricidade disponível na mão para ligar.\n";
+                }
+            } else {
+                cout << c.name << " já está com eletricidade máxima!\n";
+            }
+        }
+
+        // Outras habilidades podem ser adicionadas aqui
     }
 }
 
