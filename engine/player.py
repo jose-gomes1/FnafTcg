@@ -122,7 +122,7 @@ class Player:
     def start_turn(self):
         self.has_attached_electricity = False
         for a in self.active:
-            a.tick_stall()
+            a.tick_turn()
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
