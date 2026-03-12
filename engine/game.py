@@ -61,32 +61,37 @@ class Game:
     def _check_win_conditions(self):
         for i,p in enumerate(self.players):
             opp = self.players[1-i]
+
+            # Process deaths: each dead animatronic = 1 point for attacker
             for card in [c for c in opp.active if not c.is_alive()]:
                 revived = on_death(card, self, 1-i)
                 if not revived:
-                    if card in opp.active: opp.active.remove(card); opp.discard.append(card)
+                    if card in opp.active:
+                        opp.active.remove(card)
+                        opp.discard.append(card)
                     self.log(f"{card.name} foi derrotado!")
-            if len(opp.alive_active())==0 and len(opp.active)==0:
-                has_more = (any(isinstance(c,AnimatronicCard) for c in opp.hand) or
-                            any(isinstance(c,AnimatronicCard) for c in opp.deck))
-                if not has_more:
-                    self.log(f"{p.name} acabou com todos os animatronics de {opp.name}! VITORIA IMEDIATA!")
+                    # Check Springbonnie: no point awarded on transform
+                    if not getattr(card, 'springbonnie_transformed', False):
+                        p.points += 1
+                        self.log(f"{p.name} ganha 1 ponto por derrotar {card.name}! (Total: {p.points})")
+                    if p.points >= POINTS_TO_WIN:
+                        self.log(f"{p.name} chegou a {POINTS_TO_WIN} pontos! VITORIA!")
+                        self.game_over=True; self.winner=p; return
+
+            # If active is now empty, try to refill from hand only
+            if len(opp.alive_active()) == 0 and len(opp.active) == 0:
+                anim_in_hand = opp.animatronics_in_hand()
+                if not anim_in_hand:
+                    # No animatronics in hand -> immediate loss
+                    self.log(f"{opp.name} nao tem mais animatronics em jogo! {p.name} VENCE!")
                     self.game_over=True; self.winner=p; return
-                else:
-                    p.points += 1
-                    self.log(f"{p.name} ganha 1 ponto! (Total: {p.points})")
-                    max_p = get_max_party(opp)
-                    # Refill from hand first; if no animatronics in hand, draw until one appears
-                    if not opp.animatronics_in_hand():
-                        while opp.deck:
-                            drawn = opp.deck.pop(0)
-                            opp.hand.append(drawn)
-                            if isinstance(drawn, AnimatronicCard):
-                                break
-                    for card in opp.animatronics_in_hand():
-                        if len(opp.active)<max_p:
-                            opp.hand.remove(card); opp.active.append(card)
-                            on_enter(card, self, 1-i)
+                max_p = get_max_party(opp)
+                for card in anim_in_hand:
+                    if len(opp.active) < max_p:
+                        opp.hand.remove(card)
+                        opp.active.append(card)
+                        on_enter(card, self, 1-i)
+
             if p.points >= POINTS_TO_WIN:
                 self.log(f"{p.name} chegou a {POINTS_TO_WIN} pontos! VITORIA!")
                 self.game_over=True; self.winner=p; return
